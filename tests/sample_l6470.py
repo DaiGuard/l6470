@@ -1,20 +1,43 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import pytest
-from l6470 import L6470
+from l6470 import l6470
 
+import time
 
-class TestL6470():
-    @classmethod
-    def setup_class(self):
+if __name__ == '__main__':
+
+    device = None
+
+    try:
+        # open spi device bus:0, client0
+        device = l6470.Device(0, 0)
+
+        # reset L6470 
+        device.resetDevice()
+
+        # parameter value setting
+        device.setParam(l6470.MAX_SPEED, [0x10, 0x00])
+        device.setParam(l6470.STEP_MODE, [0x03])
+        device.setParam(l6470.KVAL_HOLD, [0x39])
+        device.setParam(l6470.KVAL_RUN,  [0x39])
+        device.setParam(l6470.KVAL_ACC,  [0x39])
+        device.setParam(l6470.KVAL_DEC,  [0x39])
+
+        # exec "run" command
+        device.run(True, [0x00, 0x10, 0x00])
+
+        for i in range(5):
+
+            time.sleep(1)
+
+            # get device status
+            status = device.updateStatus()
+            print(status)
+
+    except KeyboardInterrupt:
         pass
-
-    @classmethod
-    def teardown_class(self):
-        pass
-
-    def test_run(self):
-        a = 1
-        assert 1 == a
-
+    finally:
+        if device is not None:
+            # exec "soft_stop" command
+            device.softStop()

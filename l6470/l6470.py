@@ -53,7 +53,7 @@ HARD_HIZ    = (0xa8, 0)
 GET_STATUS  = (0xd0, 2)
 
 
-class L6470:
+class Device:
     """
     L6470コントロールクラス
     """
