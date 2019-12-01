@@ -1,56 +1,83 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 # モジュールインポート
 import spidev
-from enum import Enum
 
 # L6470パラメータリスト
-ABS_POS     = (0x01, 3)
-EL_POS      = (0x02, 2)
-MARK        = (0x03, 3)
-SPEED       = (0x04, 3)
-ACC         = (0x05, 2)
-DEC         = (0x06, 2)
-MAX_SPEED   = (0x07, 2)
-MIN_SPEED   = (0x08, 2)
-FS_SPD      = (0x15, 2)
-KVAL_HOLD   = (0x09, 1)
-KVAL_RUN    = (0x0a, 1)
-KVAL_ACC    = (0x0b, 1)
-KVAL_DEC    = (0x0c, 1)
-INIT_SPEED  = (0x0d, 2)
-ST_SLP      = (0x0e, 1)
-FN_SLP_ACC  = (0x0f, 1)
-FN_SLP_DEC  = (0x10, 1)
-K_THERM     = (0x11, 1)
-ADC_OUT     = (0x12, 1)
-OCD_TH      = (0x13, 1)
-STALL_TH    = (0x14, 1)
-STEP_MODE   = (0x16, 1)
-ALARM_EN    = (0x17, 1)
-CONFIG      = (0x18, 2)
-STATUS      = (0x19, 2)
+class Param(object):
+    """パラメータレジスタ情報を格納するクラス
+    """
+    def __init__(self, _addr, _mask, _rw):
+        """パラメータレジスタクラスコンストラクタ
+        
+        Arguments:
+            _addr {int} -- パラメータレジスタアドレス
+            _mask {[int]} -- 書込みデータマスク
+            _rw {[int]} -- 書込み可能タイミング -1:R, 0:WR, 1:WS, 2:WH
+        """        
+        self.addr = _addr
+        self.mask = _mask
+        self.rw = _rw
+
+ABS_POS     = Param(0x01, [0x3f, 0xff, 0xff], 1)
+EL_POS      = Param(0x02, [0x01, 0xff]      , 1)
+MARK        = Param(0x03, [0x3f, 0xff, 0xff], 0)
+SPEED       = Param(0x04, [0x0f, 0xff, 0xff],-1)
+ACC         = Param(0x05, [0x0f, 0xff]      , 1)
+DEC         = Param(0x06, [0x0f, 0xff]      , 1)
+MAX_SPEED   = Param(0x07, [0x03, 0xff]      , 0)
+MIN_SPEED   = Param(0x08, [0x1f, 0xff]      , 1)
+FS_SPD      = Param(0x15, [0x03, 0xff]      , 0)
+KVAL_HOLD   = Param(0x09, [0xff]            , 0)
+KVAL_RUN    = Param(0x0a, [0xff]            , 0)
+KVAL_ACC    = Param(0x0b, [0xff]            , 0)
+KVAL_DEC    = Param(0x0c, [0xff]            , 0)
+INIT_SPEED  = Param(0x0d, [0x3f, 0xff]      , 2)
+ST_SLP      = Param(0x0e, [0xff]            , 2)
+FN_SLP_ACC  = Param(0x0f, [0xff]            , 2)
+FN_SLP_DEC  = Param(0x10, [0xff]            , 2)
+K_THERM     = Param(0x11, [0x0f]            , 0)
+ADC_OUT     = Param(0x12, [0x1f]            ,-1)
+OCD_TH      = Param(0x13, [0x0f]            , 0)
+STALL_TH    = Param(0x14, [0x7f]            , 0)
+STEP_MODE   = Param(0x16, [0xff]            , 2)
+ALARM_EN    = Param(0x17, [0xff]            , 1)
+CONFIG      = Param(0x18, [0xff ,0xff]      , 2)
+STATUS      = Param(0x19, [0xff ,0xff]      ,-1)
 
 # L6470コマンドリスト
-SET_PARAM   = (0x00,-1)
-GET_PARAM   = (0x20,-1)
-RUN         = (0x50, 3)
-STEP_CLOCK  = (0x58, 0)
-MOVE        = (0x40, 3)
-GO_TO       = (0x60, 3)
-GO_TO_DIR   = (0x68, 3)
-GO_UTIL     = (0x82, 3)
-RELEASE_SW  = (0x92, 0)
-GO_HOME     = (0x70, 0)
-GO_MARK     = (0x78, 0)
-RESET_POS   = (0xd8, 0)
-RESET_DEVICE= (0xc0, 0)
-SOFT_STOP   = (0xb0, 0)
-HARD_STOP   = (0xb8, 0)
-SOFT_HIZ    = (0xa0, 0)
-HARD_HIZ    = (0xa8, 0)
-GET_STATUS  = (0xd0, 2)
+class Command(object):
+    """コマンドレジスタ情報を格納するクラス
+    """
+    def __init__(self, _addr, _mask):
+        """[summary]
+        
+        Arguments:
+            _addr {int} -- コマンドアドレス
+            _mask {[int]} -- コマンドデータマスク
+        """
+        self.addr = _addr
+        self.mask = _mask
+
+SET_PARAM   = Command(0x00, [])
+GET_PARAM   = Command(0x20, [0x00, 0x00])
+RUN         = Command(0x50, [0x0f, 0xff, 0xff])
+STEP_CLOCK  = Command(0x58, [])
+MOVE        = Command(0x40, [0x3f, 0xff, 0xff])
+GO_TO       = Command(0x60, [0x3f, 0xff, 0xff])
+GO_TO_DIR   = Command(0x68, [0x3f, 0xff, 0xff])
+GO_UTIL     = Command(0x82, [0x0f, 0xff, 0xff])
+RELEASE_SW  = Command(0x92, [])
+GO_HOME     = Command(0x70, [])
+GO_MARK     = Command(0x78, [])
+RESET_POS   = Command(0xd8, [])
+RESET_DEVICE= Command(0xc0, [])
+SOFT_STOP   = Command(0xb0, [])
+HARD_STOP   = Command(0xb8, [])
+SOFT_HIZ    = Command(0xa0, [])
+HARD_HIZ    = Command(0xa8, [])
+GET_STATUS  = Command(0xd0, [0x00, 0x00])
 
 
 class Device:
@@ -75,6 +102,11 @@ class Device:
         self.spi.max_speed_hz = 5000
         self.spi.mode = 0b00        
         
+        self.param = {
+            'ABS_POS'
+        }
+
+        # ステータス情報の初期化
         self.status = {
             'HiZ': 0b0,
             'BUSY': 0b0,
@@ -92,6 +124,9 @@ class Device:
             'STEP_LOSS_B': 0b0,
             'SCK_MOD': 0b0
         }
+
+        # 起動時ステータスに更新
+        self.updateStatus()
 
         print('SPI.{}.{}を開きます'.format(bus, client))
 
@@ -152,30 +187,33 @@ class Device:
         Arguments:
             param {(int, int)} -- パラメータ情報 ex.(レジスタアドレス, サイズ) = (0x12, 3)
             values {[int]} -- パレメータ値 ex.[0x12, 0xab]
-        """
-
+        """        
         # 引数の型を確認する
-        if(type(param) is not tuple
+        if(type(param) is not Param
             or type(values) is not list):
 
             err  = '"setParam()"関数の引数不一致\n'
             err += '   setParam(param, values)\n'
-            err += '      param : (int, int) ex.(0x12, 2)\n'
+            err += '      param : (int, [int], int) ex.(0x12, [0xff], 0)\n'
             err += '      values: [int] ex.[0x12, 0xab]\n'
 
             raise RuntimeError(err)
 
         # パラメータサイズを確認する
-        if param[1] != len(values):
+        i = 0
+        for mask in param.mask:
+            if (~mask & values[i]) > 0:      
 
-            err  = '"SET_PARAM"コマンドが要求している値サイズと不一致\n'
-            err += '  指定レジスタ     : {}\n'.format(param[0])
-            err += '  レジスタ要求サイズ: {}\n'.format(param[1])
-            err += '  値サイズ　　　　　: {}\n'.format(len(values))
+                err  = '"SET_PARAM"コマンドが要求している値サイズと不一致\n'
+                err += '  指定レジスタ     : {}\n'.format(hex(param[0]))
+                err += '  レジスタ要求サイズ: {}\n'.format([bin(j) for j in param.mask])
+                err += '  値サイズ　　　　　: {}\n'.format([bin(j) for j in values])
 
-            raise RuntimeError(err)
+                raise RuntimeError(err)
 
-        self.command(param[0], len(values), values)
+            i += 1
+
+        self.command(param.addr, values)
 
     def getParam(self, param):
         """パラメータレジスタから値を取得する
@@ -188,7 +226,7 @@ class Device:
         """
 
         # 引数の型を確認する
-        if(type(param) is not tuple):
+        if(type(param) is not Param):
 
             err  = '"getParam()"関数の引数不一致\n'
             err += '   setParam(param, values)\n'
@@ -197,9 +235,9 @@ class Device:
             raise RuntimeError(err)
 
 
-        reg = GET_PARAM[0] | param[0]
+        reg = GET_PARAM.addr | param.addr
 
-        return self.command(reg, param[1])
+        return self.command(reg, [0x00]*len(param.mask))
 
     def run(self, dir, speed):
         """RUNコマンドを実行する
@@ -220,21 +258,26 @@ class Device:
 
             raise RuntimeError(err)
 
-        # 速度のリストサイズを確認する
-        if(RUN[1] != len(speed)):
-            
-            err  = '"RUN"コマンドの速度データサイズ不一致\n'
-            err += '   要求サイズ  : {}\n'.format(RUN[1])
-            err += '   データサイズ: {}\n'.format(len(speed))
+        # 速度パラメータサイズを確認する
+        i = 0
+        for mask in RUN.mask:
+            if (~mask & speed[i]) > 0:      
 
-            raise RuntimeError(err)
+                err  = '"RUN"コマンドが要求している値サイズと不一致\n'
+                err += '  指定レジスタ     : {}\n'.format(hex(RUN.addr))
+                err += '  レジスタ要求サイズ: {}\n'.format([bin(j) for j in RUN.mask])
+                err += '  値サイズ　　　　　: {}\n'.format([bin(j) for j in speed])
+
+                raise RuntimeError(err)
+
+            i += 1
 
         # "RUN"コマンドに方向ビットを適用する
-        reg = RUN[0]        
+        reg = RUN.addr
         if not dir:
             reg = 0x01 | reg
 
-        self.command(reg, RUN[1], speed)
+        self.command(reg, speed)
 
     def stepClock(self, dir):
         pass
@@ -257,42 +300,42 @@ class Device:
     def goHome(self):
         """GO_HOMEコマンドを実行する
         """
-        self.command(GO_HOME[0])
+        self.command(GO_HOME.addr)
 
     def goMark(self):
         """GO_MARKコマンドを実行する
         """
-        self.command(GO_MARK[0])
+        self.command(GO_MARK.addr)
 
     def resetPos(self):
         """RESET_POSコマンドを実行する
         """
-        self.command(RESET_POS[0])
+        self.command(RESET_POS.addr)
 
     def resetDevice(self):
         """RESET_DEVICEコマンドを実行する
         """
-        self.command(RESET_DEVICE[0])
+        self.command(RESET_DEVICE.addr)
 
     def softStop(self):
         """SOFT_STOPコマンドを実行する
         """
-        self.command(SOFT_STOP[0])
+        self.command(SOFT_STOP.addr)
 
     def hardStop(self):
         """HARD_STOPコマンドを実行する
         """
-        self.command(HARD_STOP[0])
+        self.command(HARD_STOP.addr)
 
     def softHiz(self):
         """SOFT_HIZコマンドを実行する
         """
-        self.command(SOFT_HIZ[0])
+        self.command(SOFT_HIZ.addr)
 
     def hardHiz(self):
         """HARD_HIZコマンドを実行する
         """
-        self.command(HARD_HIZ[0])
+        self.command(HARD_HIZ.addr)
 
     def getStatus(self):
         """ステータスレジスタの値を取得する
@@ -300,17 +343,16 @@ class Device:
         Returns:
             [int] -- ステータスレジスタ値
         """
-        return self.command(GET_STATUS[0], GET_STATUS[1])
+        return self.command(GET_STATUS.addr, GET_STATUS.mask)
 
 
-    def command(self, cmd, size=0, values=None):
+    def command(self, cmd, values=[]):
         """コマンド実行を行う
         
         Arguments:
             cmd {int} -- コマンド値 ex.0xab
         
-        Keyword Arguments:
-            size {int} -- パラメータ値のリストサイズ (default: {0})
+        Keyword Arguments:            
             values {[int]} -- パラメータ値 ex.[0x12, 0xab] (default: {None})
         
         Returns:
@@ -318,14 +360,12 @@ class Device:
         """
 
         # 引数の型を確認する
-        if(type(cmd) is not int
-            or type(size) is not int
-            or (values is not None and type(values) is not list)):
+        if(type(cmd) is not int           
+            or type(values) is not list):
 
             err  = '"command"関数の引数不一致\n'
             err += '   command(cmd, size, values)\n'
-            err += '      cmd   : int   (ex. 0x70)\n'
-            err += '      size  : int   (ex. 2)\n'
+            err += '      cmd   : int   (ex. 0x70)\n'            
             err += '      values: [int] (ex. [0x00, 0x0d])\n'
 
             raise RuntimeError(err)
@@ -334,13 +374,8 @@ class Device:
         to_send = [cmd]
 
         # 送信データにコマンド値の後に続くデータを連結する
-        if(values is None):
-            nop = []
-            for i in range(size):
-                nop.append(0x00)
-            to_send += nop
-        else:
-            to_send += values[0:size]
+        if(len(values) > 0):
+            to_send += values
 
         from_recv = []        
 

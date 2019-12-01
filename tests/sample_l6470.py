@@ -1,9 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from l6470 import l6470
 
 import time
+import sys
+import traceback
+
 
 if __name__ == '__main__':
 
@@ -17,7 +20,7 @@ if __name__ == '__main__':
         device.resetDevice()
 
         # parameter value setting
-        device.setParam(l6470.MAX_SPEED, [0x10, 0x00])
+        device.setParam(l6470.MAX_SPEED, [0x01, 0x00])
         device.setParam(l6470.STEP_MODE, [0x03])
         device.setParam(l6470.KVAL_HOLD, [0x39])
         device.setParam(l6470.KVAL_RUN,  [0x39])
@@ -35,6 +38,10 @@ if __name__ == '__main__':
             status = device.updateStatus()
             print(status)
 
+    except Exception as e:
+        t, v, tb = sys.exc_info()
+        print(traceback.format_exception(t,v,tb))
+        print(traceback.format_tb(e.__traceback__))
     except KeyboardInterrupt:
         pass
     finally:
