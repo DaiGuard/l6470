@@ -1,19 +1,18 @@
 # L6470
----
 
 Python library for coontrolling STMicroelectronics L6470 using SPI.
 
 ## Install
 
-Clone ```l6470``` repogitory local from github.
+Clone **l6470** repogitory local from github.
 
-```bash
+```
 $ git clone https://github.com/DaiGuard/l6470
 ```
 
 Install using setuptools.
 
-```bash
+```
 $ cd l6470
 $ sudo python3 setup.py install
 ```
@@ -27,20 +26,20 @@ and the motor uses [**P-PMSA-B60D3 (Plexmotion)**](http://www.plexmotion.com/pro
 
 The pin assignment is show in the table.
 
-| Jetson Nano | AE-L6470DRV |
-| --- | --- |
-| Pin 19 (SPI_MOSI) | CN4-7 (SDI) |
-| Pin 21 (SPI_MISO) | CN4-5 (SDO) |
-| Pin 23 (SPI1_SCK) | CN4-6 (CK) |
-| Pin 24 (SPI1_CS0) | CN4-8 (GND) |
-| Pin 25 (GND) | CN4-3 (GND) |
+| Jetson Nano | | AE-L6470DRV |
+| --- | -- | --- |
+| Pin 19 (SPI_MOSI) | --> | CN4-7 (SDI) |
+| Pin 21 (SPI_MISO) | <-- | CN4-5 (SDO) |
+| Pin 23 (SPI1_SCK) | --> | CN4-6 (CK) |
+| Pin 24 (SPI1_CS0) | --> | CN4-8 (#CS) |
+| Pin 25 (GND) | <-> | CN4-3 (GND) |
 
 ## Usage
 
 Sample code ```tests/sample_l6470.py```
 
 ``` python
-# coding: utf-
+# coding: utf-8
 
 # import l6470 module
 from l6470 import l6470
@@ -87,7 +86,7 @@ if __name__ == '__main__':
 
 Run the sample with the following command
 
-```bash
+```
 $ cd l6470/tests
 $ python3 sample_l6470.py
 ```
