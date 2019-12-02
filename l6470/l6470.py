@@ -51,7 +51,7 @@ class Command(object):
     """コマンドレジスタ情報を格納するクラス
     """
     def __init__(self, _addr, _mask):
-        """[summary]
+        """コマンドレジスタコンストラクタ
         
         Arguments:
             _addr {int} -- コマンドアドレス
@@ -67,7 +67,7 @@ STEP_CLOCK  = Command(0x58, [])
 MOVE        = Command(0x40, [0x3f, 0xff, 0xff])
 GO_TO       = Command(0x60, [0x3f, 0xff, 0xff])
 GO_TO_DIR   = Command(0x68, [0x3f, 0xff, 0xff])
-GO_UTIL     = Command(0x82, [0x0f, 0xff, 0xff])
+GO_UNTIL    = Command(0x82, [0x0f, 0xff, 0xff])
 RELEASE_SW  = Command(0x92, [])
 GO_HOME     = Command(0x70, [])
 GO_MARK     = Command(0x78, [])
@@ -100,7 +100,7 @@ class Device:
         # SPIデバイスの初期化
         self.spi = spidev.SpiDev(bus, client)
         self.spi.max_speed_hz = 5000
-        self.spi.mode = 0b00        
+        self.spi.mode = 0b11
         
         self.param = {
             'ABS_POS'
@@ -125,6 +125,9 @@ class Device:
             'SCK_MOD': 0b0
         }
 
+        # リセット
+        self.resetDevice()
+
         # 起動時ステータスに更新
         self.updateStatus()
 
@@ -143,6 +146,9 @@ class Device:
     # === ハイレベル API ===
     def updateStatus(self):
         """ステータス情報の更新
+
+        Returns:
+            {string, int} -- ステータス値
         """
         status = self.getStatus()        
 
@@ -185,8 +191,11 @@ class Device:
         """パラメータレジスタに値を設定する
         
         Arguments:
-            param {(int, int)} -- パラメータ情報 ex.(レジスタアドレス, サイズ) = (0x12, 3)
+            param {(int, int)} -- パラメータ情報 ex.(0x12, 3)
             values {[int]} -- パレメータ値 ex.[0x12, 0xab]
+
+        Raises:
+            RuntimeError: 引数の型不一致
         """        
         # 引数の型を確認する
         if(type(param) is not Param
@@ -194,26 +203,22 @@ class Device:
 
             err  = '"setParam()"関数の引数不一致\n'
             err += '   setParam(param, values)\n'
-            err += '      param : (int, [int], int) ex.(0x12, [0xff], 0)\n'
+            err += '      param : <class Param>\n'
             err += '      values: [int] ex.[0x12, 0xab]\n'
 
             raise RuntimeError(err)
 
         # パラメータサイズを確認する
-        i = 0
-        for mask in param.mask:
-            if (~mask & values[i]) > 0:      
+        if len(param.mask) != len(values):
+            err = '"setParam()"関数のvalues[]がサイズ不一致'
+            raise RuntimeError(err)
 
-                err  = '"SET_PARAM"コマンドが要求している値サイズと不一致\n'
-                err += '  指定レジスタ     : {}\n'.format(hex(param[0]))
-                err += '  レジスタ要求サイズ: {}\n'.format([bin(j) for j in param.mask])
-                err += '  値サイズ　　　　　: {}\n'.format([bin(j) for j in values])
-
-                raise RuntimeError(err)
-
-            i += 1
-
+        # データマスクを適用する
+        for i in range(len(param.mask)):
+            values[i] = param.mask[i] & values[i]
+        
         self.command(param.addr, values)
+
 
     def getParam(self, param):
         """パラメータレジスタから値を取得する
@@ -223,6 +228,9 @@ class Device:
         
         Returns:
             [int] -- パレメータレジスタ値 ex.[0x12, 0xab]
+
+        Raises:
+            RuntimeError: 引数の型不一致
         """
 
         # 引数の型を確認する
@@ -245,6 +253,9 @@ class Device:
         Arguments:
             dir {bool} -- 方向 True:CW, False:CCW
             speed {[int]} -- 速度 ex.[0x12, 0xab]
+
+        Raises:
+            RuntimeError: 引数の型不一致
         """
 
         # 引数の型を確認する
@@ -258,44 +269,227 @@ class Device:
 
             raise RuntimeError(err)
 
-        # 速度パラメータサイズを確認する
-        i = 0
-        for mask in RUN.mask:
-            if (~mask & speed[i]) > 0:      
+        if len(RUN.mask) != len(speed):
+            err = '"run()"関数のspeed[]がサイズ不一致'
+            raise RuntimeError(err)
 
-                err  = '"RUN"コマンドが要求している値サイズと不一致\n'
-                err += '  指定レジスタ     : {}\n'.format(hex(RUN.addr))
-                err += '  レジスタ要求サイズ: {}\n'.format([bin(j) for j in RUN.mask])
-                err += '  値サイズ　　　　　: {}\n'.format([bin(j) for j in speed])
-
-                raise RuntimeError(err)
-
-            i += 1
+        # データマスクを適用する
+        for i in range(len(RUN.mask)):
+            speed[i] = RUN.mask[i] & speed[i]
 
         # "RUN"コマンドに方向ビットを適用する
         reg = RUN.addr
-        if not dir:
+        if dir:
             reg = 0x01 | reg
 
         self.command(reg, speed)
 
     def stepClock(self, dir):
-        pass
+        """STEP_CLOCKコマンドを実行する
+        
+        Arguments:
+            dir {bool} -- 方向 True:CW, False:CCW
+        
+        Raises:
+            RuntimeError: 引数の型不一致
+        """
+        # 引数の型を確認する
+        if(type(dir) is not bool):
+
+            err  = '"stepClock()"関数の引数不一致\n'
+            err += '   stepClock(dir)\n'
+            err += '      dir  : bool'            
+
+            raise RuntimeError(err)
+
+        # "STEP_CLOCK"コマンドに方向ビットを適用する
+        reg = STEP_CLOCK.addr
+        if dir:
+            reg = 0x01 | reg
+
+        self.command(reg)
+
 
     def move(self, dir, n_step):
-        pass
+        """MOVEコマンドを実行する
+        
+        Arguments:
+            dir {bool} -- 方向 True:CW, False:CCW
+            n_step {[int]} -- ステップ数 ex.[0x03, 0xff]
+        
+        Raises:
+            RuntimeError: 引数の型不一致            
+        """
+        
+        # 引数の型を確認する
+        if(type(dir) is not bool
+            or type(n_step) is not list):
+
+            err  = '"move()"関数の引数不一致\n'
+            err += '   move(dir, n_step)\n'
+            err += '      dir  : bool\n'
+            err += '      dir  : [int] ex.[0x12, 0x34, 0x56]'
+
+            raise RuntimeError(err)
+
+        if len(MOVE.mask) != len(n_step):
+            err = '"move()"関数のn_step[]がサイズ不一致'
+            raise RuntimeError(err)
+
+        # データマスクを適用する
+        for i in range(len(MOVE.mask)):
+            n_step[i] = MOVE.mask[i] & n_step[i]
+
+        # "MOVE"コマンドに方向ビットを適用する
+        reg = MOVE.addr
+        if dir:
+            reg = 0x01 | reg
+
+        self.command(reg, n_step)
+
 
     def goTo(self, abs_pos):
-        pass
+        """GO_TOコマンドを実行する
+        
+        Arguments:
+            abs_pos {[int]} -- 目標絶対位置 ex.[0x00, 0x12, 0x34]
+        
+        Raises:
+            RuntimeError: 引数の型不一致
+        """
+        # 引数の型を確認する
+        if(type(abs_pos) is not list):
+
+            err  = '"goTo()"関数の引数不一致\n'
+            err += '   goTo(abs_pos)\n'            
+            err += '      abs_pos  : [int] ex.[0x12, 0x34, 0x56]'
+
+            raise RuntimeError(err)
+
+        if len(GO_TO.mask) != len(abs_pos):
+            err = '"goTo()"関数のabs_pos[]がサイズ不一致'
+            raise RuntimeError(err)
+
+        # データマスクを適用する
+        for i in range(len(GO_TO.mask)):
+            abs_pos[i] = GO_TO.mask[i] & abs_pos[i]
+
+        self.command(GO_TO.addr, abs_pos)
+
 
     def goToDir(self, dir, abs_pos):
-        pass
+        """GO_TOコマンドを実行する
+        
+        Arguments:
+            dir {bool} -- 方向 True:CW, False:CCW
+            abs_pos {[int]} -- 目標絶対位置 ex.[0x00, 0x12, 0x34]
+        
+        Raises:
+            RuntimeError: 引数の型不一致
+        """
+
+        # 引数の型を確認する
+        if(type(dir) is not bool
+            or type(abs_pos) is not list):
+
+            err  = '"goToDir()"関数の引数不一致\n'
+            err += '   goToDir(dir, abs_pos)\n'
+            err += '      dir  : bool\n'
+            err += '      abs_pos  : [int] ex.[0x12, 0x34, 0x56]'
+
+            raise RuntimeError(err)
+
+        if len(GO_TO_DIR.mask) != len(abs_pos):
+            err = '"goToDir()"関数のabs_pos[]がサイズ不一致'
+            raise RuntimeError(err)
+
+        # データマスクを適用する
+        for i in range(len(GO_TO_DIR.mask)):
+            abs_pos[i] = GO_TO_DIR.mask[i] & abs_pos[i]
+
+        # "MOVE"コマンドに方向ビットを適用する
+        reg = GO_TO_DIR.addr
+        if dir:
+            reg = 0x01 | reg
+
+        self.command(reg, abs_pos)
+
 
     def goUntil(self, act, dir, speed):
-        pass
+        """GO_UNTILコマンドを実行する
+        
+        Arguments:
+            act {bool} -- 方向 True:Move False:Stop
+            dir {bool} -- 方向 True:CW, False:CCW
+            speed {[int]} -- 目標速度 ex.[0x00, 0x12, 0x34]
+        
+        Raises:
+            RuntimeError: 引数の型不一致
+        """
+        
+        # 引数の型を確認する
+        if(type(act) is not bool
+            or type(dir) is not bool
+            or type(speed) is not list):
+
+            err  = '"goUntil()"関数の引数不一致\n'
+            err += '   goToDir(act, dir, speed)\n'
+            err += '      act  : bool\n'
+            err += '      dir  : bool\n'
+            err += '      speed: [int] ex.[0x12, 0x34, 0x56]'
+
+            raise RuntimeError(err)
+
+        if len(GO_UNTIL.mask) != len(speed):
+            err = '"goUtil()"関数のspeed[]がサイズ不一致'
+            raise RuntimeError(err)
+
+        # データマスクを適用する
+        for i in range(len(GO_UNTIL.mask)):
+            speed[i] = GO_UNTIL.mask[i] & speed[i]
+
+        # "GO_UNTIL"コマンドに方向ビットを適用する
+        reg = GO_UNTIL.addr
+        if dir:
+            reg = 0x01 | reg
+
+        if act:
+            reg = 0x08 | reg
+
+        self.command(reg, speed)
+        
 
     def releaseSW(self, act, dir):
-        pass
+        """RELEASE_SWコマンドを実行する
+        
+        Arguments:
+            act {bool} -- 方向 True:Move False:Stop
+            dir {bool} -- 方向 True:CW, False:CCW
+        
+        Raises:
+            RuntimeError: 引数の型不一致
+        """
+        # 引数の型を確認する
+        if(type(act) is not bool
+            or type(dir) is not bool):
+        
+            err  = '"releaseSW()"関数の引数不一致\n'
+            err += '   releaseSW(act, dir)\n'
+            err += '      act  : bool\n'
+            err += '      dir  : bool'            
+
+            raise RuntimeError(err)
+
+        # "RELEASE_SW"コマンドに方向ビットを適用する
+        reg = RELEASE_SW.addr
+        if dir:
+            reg = 0x01 | reg
+
+        if act:
+            reg = 0x08 | reg
+
+        self.command(reg)
+
 
     def goHome(self):
         """GO_HOMEコマンドを実行する
@@ -380,7 +574,7 @@ class Device:
         from_recv = []        
 
         for value in to_send:
-            from_recv += self.spi.xfer([value])        
+            from_recv += self.spi.xfer([value])
 
         return from_recv[1:]
 

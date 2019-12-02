@@ -20,15 +20,15 @@ if __name__ == '__main__':
         device.resetDevice()
 
         # parameter value setting
-        device.setParam(l6470.MAX_SPEED, [0x01, 0x00])
-        device.setParam(l6470.STEP_MODE, [0x03])
+        device.setParam(l6470.MAX_SPEED, [0x01, 0x80])        
+        device.setParam(l6470.STEP_MODE, [0x07])
         device.setParam(l6470.KVAL_HOLD, [0x39])
         device.setParam(l6470.KVAL_RUN,  [0x39])
         device.setParam(l6470.KVAL_ACC,  [0x39])
         device.setParam(l6470.KVAL_DEC,  [0x39])
 
         # exec "run" command
-        device.run(True, [0x00, 0x10, 0x00])
+        device.stepClock(True)
 
         for i in range(5):
 
