@@ -36,7 +36,7 @@ The pin assignment is show in the table.
 
 ## Usage
 
-Sample code ```tests/sample_l6470.py```
+Sample code ```samples/sample_run.py```
 
 ``` python
 # coding: utf-8
@@ -87,6 +87,13 @@ if __name__ == '__main__':
 Run the sample with the following command
 
 ```
-$ cd l6470/tests
-$ python3 sample_l6470.py
+$ cd l6470/samples
+$ python3 sample_run.py
+```
+
+## Test
+
+```
+$ cd l6470
+$ python3 setup.py test
 ```
