@@ -208,7 +208,7 @@ class TestClass(object):
             status = self.device.updateStatus()
 
             assert status['BUSY'] == 0b1
-            assert status['DIR'] == 0b0
+            assert status['DIR'] == 0b1
             assert status['MOT_STATUS'] == 0b11
 
             speed = self.device.getParam(l6470.SPEED)
