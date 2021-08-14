@@ -174,7 +174,7 @@ class Device:
         # TH_WRN:
         self.status['TH_WRN']     = (0x04 & status[0]) >> 2
         # TH_SD: 
-        self.status['TH_SD']      = (0x80 & status[0]) >> 3
+        self.status['TH_SD']      = (0x08 & status[0]) >> 3
         # OCD
         self.status['OCD']        = (0x10 & status[0]) >> 4
         # STEP_LOSS_A: 
