@@ -187,7 +187,7 @@ class Device:
         return self.status
 
     # === ローレベル API ===
-    def setParam(self, param, values):
+    def setParam(self, param: Param, values: list):
         """パラメータレジスタに値を設定する
         
         Arguments:
@@ -220,7 +220,7 @@ class Device:
         self.command(param.addr, values)
 
 
-    def getParam(self, param):
+    def getParam(self, param: Param):
         """パラメータレジスタから値を取得する
         
         Arguments:

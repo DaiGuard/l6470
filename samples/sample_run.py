@@ -20,22 +20,27 @@ if __name__ == '__main__':
         device.resetDevice()
 
         # parameter value setting
-        device.setParam(l6470.MAX_SPEED, [0x01, 0x80])        
-        device.setParam(l6470.STEP_MODE, [0x03])
-        device.setParam(l6470.KVAL_HOLD, [0x39])
-        device.setParam(l6470.KVAL_RUN,  [0x39])
-        device.setParam(l6470.KVAL_ACC,  [0x39])
-        device.setParam(l6470.KVAL_DEC,  [0x39])
+        device.setParam(l6470.MAX_SPEED, [0x02, 0xff])
+        device.setParam(l6470.ACC, [0x00, 0x10])
+        device.setParam(l6470.DEC, [0x00, 0x10])
+        device.setParam(l6470.STEP_MODE, [0x23])
+        device.setParam(l6470.KVAL_HOLD, [0x3f])
+        device.setParam(l6470.KVAL_RUN,  [0x4f])
+        device.setParam(l6470.KVAL_ACC,  [0x4f])
+        device.setParam(l6470.KVAL_DEC,  [0x4f])
+        device.setParam(l6470.OCD_TH, [0x0f])
+        device.setParam(l6470.STALL_TH, [0x7f])
 
         # exec "run" command
-        device.run(True, [0x00, 0x10, 0x00])
+        device.run(True, [0x00, 0x80, 0x00])
 
-        for i in range(5):
+        # for i in range(5):
+        while True:
 
             time.sleep(1)
 
             # get device status
-            status = device.updateStatus()
+            status = device.updateStatus()            
             print(status)
 
     except Exception as e:
